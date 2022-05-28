@@ -1,12 +1,12 @@
 /* eslint-disable import/extensions */
 import { Router } from 'express';
 
-import { getGames } from '../Controllers/gamesController.js';
-// import validadeCategoryName from '../Middlewares/categoryNameValidation.js';
+import { getGames, postGames } from '../Controllers/gamesController.js';
+import validadeGameInfo from '../Middlewares/postGameValidation.js';
 
 const gamesRouter = Router();
 
 gamesRouter.get('/games', getGames);
-// gamesRouter.post('/games', postGames);
+gamesRouter.post('/games', validadeGameInfo, postGames);
 
 export default gamesRouter;

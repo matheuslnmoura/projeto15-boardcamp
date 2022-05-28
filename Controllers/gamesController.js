@@ -46,3 +46,13 @@ export async function getGames(req, res) {
     return res.sendStatus(500);
   }
 }
+
+export async function postGames(req, res) {
+  try {
+    const game = res.locals.user;
+    return res.status(200).send(game);
+  } catch (e) {
+    console.log(chalk.bold.red(e));
+    return res.sendStatus(500);
+  }
+}
