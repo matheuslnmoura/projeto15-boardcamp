@@ -69,7 +69,7 @@ export default async function validadeGameInfo(req, res, next) {
   const nameError = await checkName(req);
   if (nameError) {
     console.log(chalk.bold.red('This game has already been registred'));
-    return res.sendStatus(400);
+    return res.sendStatus(409);
   }
 
   game.name = game.name.toLowerCase();
