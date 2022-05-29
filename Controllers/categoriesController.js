@@ -16,10 +16,9 @@ export async function getCategories(req, res) {
 
 export async function postCategories(req, res) {
   const categoryName = res.locals.user;
-  console.log(categoryName);
   try {
     await connection.query(`
-        INSERT INTO categories (id, name) VALUES (DEFAULT, '${categoryName}')`);
+        INSERT INTO categories (id, name) VALUES (DEFAULT, $1)`, [categoryName]);
     res.sendStatus(201);
   } catch (e) {
     console.log(chalk.bold.red(e));
