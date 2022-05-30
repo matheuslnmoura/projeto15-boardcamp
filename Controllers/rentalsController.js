@@ -120,7 +120,7 @@ export async function postRental(req, res) {
   }
 }
 
-export async function closeRental(req, res) { // FIX ME
+export async function closeRental(req, res) {
   try {
     const rentalData = res.locals.user;
     const {
@@ -141,9 +141,25 @@ export async function closeRental(req, res) { // FIX ME
       SET "returnDate" = $1, 
           "delayFee" = $2
       WHERE id = $3
-
     `, [todayDate, delayFee, id]);
     return res.status(201).send(rentalData);
+  } catch (e) {
+    console.log(chalk.bold.red(e));
+    return res.sendStatus(500);
+  }
+}
+
+export async function deleteRental(req, res) {
+  try {
+    const rentalInfo = res.locals.user[0];
+    const { id: rentalId } = rentalInfo;
+
+    await connection.query(`
+      DELETE FROM rentals 
+      WHERE id = $1
+    `, [rentalId]);
+
+    return res.sendStatus(200);
   } catch (e) {
     console.log(chalk.bold.red(e));
     return res.sendStatus(500);

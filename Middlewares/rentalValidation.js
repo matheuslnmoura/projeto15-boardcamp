@@ -103,3 +103,30 @@ export async function validadeCloseRentalId(req, res, next) {
     return res.sendStatus(500);
   }
 }
+
+export async function validadeDeleteRental(req, res, next) {
+  try {
+    const rentalId = req.params.id;
+    const rentalOnDatabase = (await connection.query(`
+      SELECT rentals.id, rentals."returnDate"
+      FROM rentals
+      WHERE rentals.id = ($1)
+    `, [rentalId])).rows;
+
+    if (rentalOnDatabase.length === 0) {
+      console.log(chalk.bold.red('Rental not found on database :('));
+      return res.sendStatus(404);
+    }
+
+    if (rentalOnDatabase[0].returnDate !== null) {
+      console.log(chalk.bold.red('This rental is already closed'));
+      return res.sendStatus(400);
+    }
+
+    delete rentalOnDatabase[0].returnDate;
+    res.locals.user = rentalOnDatabase;
+    next();
+  } catch (e) {
+    return res.sendStatus(500);
+  }
+}
