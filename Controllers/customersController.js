@@ -40,13 +40,13 @@ export async function getSingleCustomer(req, res) {
     const databaseCustomer = (await connection.query(`
       SELECT * FROM customers
       WHERE customers.id = ${customerInfo.id}
-    `));
+    `)).rows;
 
     if (databaseCustomer.length === 0) {
       return res.status(404).send('Customer Not Found :(');
     }
 
-    return res.status(200).send(databaseCustomer);
+    return res.status(200).send(databaseCustomer[0]);
   } catch (e) {
     console.log(chalk.bold.red(e));
     return res.sendStatus(500);

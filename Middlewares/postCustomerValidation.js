@@ -66,7 +66,7 @@ export default async function validadeCustomerData(req, res, next) {
     name: joi.string().required(),
     phone: joi.string().pattern(/^[0-9]{10,11}$/).allow(null, '').required(),
     cpf: joi.string().pattern(/^[0-9]{11,11}$/).required(),
-    birthday: Joi.date().format('YYYY-MM-DD').required(),
+    birthday: Joi.date().iso().required(),
   });
 
   const { error } = customerDataSchema.validate(customerData, { abortEarly: false });

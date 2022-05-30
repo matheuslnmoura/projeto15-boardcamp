@@ -90,7 +90,7 @@ export async function validadeCloseRentalId(req, res, next) {
       console.log(chalk.bold.red('Rental not found :('));
       return res.sendStatus(404);
     }
-    console.log(rentalOnDatabase);
+
     if (rentalOnDatabase[0].returnDate) {
       console.log(chalk.bold.red('Game already returned!'));
       return res.sendStatus(400);
@@ -108,7 +108,7 @@ export async function validadeDeleteRental(req, res, next) {
   try {
     const rentalId = req.params.id;
     const rentalOnDatabase = (await connection.query(`
-      SELECT rentals.id, rentals."returnDate"
+      SELECT rentals.id, rentals."returnDate", rentals."gameId"
       FROM rentals
       WHERE rentals.id = ($1)
     `, [rentalId])).rows;
@@ -127,6 +127,7 @@ export async function validadeDeleteRental(req, res, next) {
     res.locals.user = rentalOnDatabase;
     next();
   } catch (e) {
+    console.log(chalk.bold.red(e));
     return res.sendStatus(500);
   }
 }

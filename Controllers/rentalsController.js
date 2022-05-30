@@ -35,6 +35,14 @@ function calculateDays(rentDate, returnDate) {
   return null;
 }
 
+async function updateStock(gameId, action) {
+  connection.query(`
+    UPDATE GAMES
+    SET "stockTotal" = "stockTotal" ${action} 1
+    WHERE id = $1
+    `, [gameId]);
+}
+
 export async function getRentals(req, res) {
   try {
     const whereQuery = await buildWhereQuery(req);
@@ -113,6 +121,9 @@ export async function postRental(req, res) {
       )
       VALUES (DEFAULT, $1, $2, $3, $4, $5, $6, $7)
     `, [customerId, gameId, todayDate, daysRented, null, daysRented * pricePerDay, null]);
+
+    await updateStock(gameId, '-');
+
     return res.sendStatus(201);
   } catch (e) {
     console.log(chalk.bold.red(e));
@@ -124,10 +135,10 @@ export async function closeRental(req, res) {
   try {
     const rentalData = res.locals.user;
     const {
-      id, rentDate, daysRented, pricePerDay,
+      id, gameId, rentDate, daysRented, pricePerDay,
     } = rentalData[0];
 
-    const todayDate = new Date('2021-06-30');
+    const todayDate = new Date();
 
     const actualDaysRented = calculateDays(rentDate, todayDate);
     let delayFee = null;
@@ -142,6 +153,9 @@ export async function closeRental(req, res) {
           "delayFee" = $2
       WHERE id = $3
     `, [todayDate, delayFee, id]);
+
+    await updateStock(gameId, '+');
+
     return res.status(201).send(rentalData);
   } catch (e) {
     console.log(chalk.bold.red(e));
@@ -152,12 +166,14 @@ export async function closeRental(req, res) {
 export async function deleteRental(req, res) {
   try {
     const rentalInfo = res.locals.user[0];
-    const { id: rentalId } = rentalInfo;
+    const { id: rentalId, gameId } = rentalInfo;
 
     await connection.query(`
       DELETE FROM rentals 
       WHERE id = $1
     `, [rentalId]);
+
+    await updateStock(gameId, '+');
 
     return res.sendStatus(200);
   } catch (e) {
