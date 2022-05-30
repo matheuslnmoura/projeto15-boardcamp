@@ -91,3 +91,28 @@ export async function getRentals(req, res) {
     return res.sendStatus(500);
   }
 }
+
+export async function postRental(req, res) {
+  const rentalData = res.locals.user;
+  const {
+    customerId, gameId, daysRented, pricePerDay,
+  } = rentalData;
+  const todayDate = new Date();
+  // todayDate = todayDate.toString();
+  console.log(todayDate);
+  await connection.query(`
+    INSERT INTO rentals
+    (
+      id,
+      "customerId",
+      "gameId",
+      "rentDate",
+      "daysRented",
+      "returnDate",
+      "originalPrice",
+      "delayFee"
+    )
+    VALUES (DEFAULT, $1, $2, $3, $4, $5, $6, $7)
+  `, [customerId, gameId, todayDate, daysRented, null, daysRented * pricePerDay, null]);
+  res.sendStatus(201);
+}

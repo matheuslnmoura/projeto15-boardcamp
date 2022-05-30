@@ -1,0 +1,70 @@
+/* eslint-disable consistent-return */
+/* eslint-disable import/extensions */
+/* eslint-disable no-console */
+import chalk from 'chalk';
+import joi from 'joi';
+
+import connection from '../db.js';
+
+async function checkIfCustomerExists(customerId) {
+  const customerOnDatabase = (await connection.query(`
+    SELECT customers.id FROM customers
+    WHERE customers.id = ($1)
+  `, [customerId])).rows;
+
+  if (customerOnDatabase.length === 0) {
+    return false;
+  }
+  return true;
+}
+
+async function checkIfGameIsValid(gameId) {
+  const gameOnDatabase = (await connection.query(`
+  SELECT games."stockTotal", games."pricePerDay" 
+  FROM games
+  WHERE games.id = ($1)
+`, [gameId])).rows;
+
+  if (gameOnDatabase.length === 0) {
+    return { isAvailable: false, reason: 'Game not Registed on Database :(' };
+  }
+
+  if (gameOnDatabase[0].stockTotal <= 0) {
+    return { isAvailable: false, reason: 'No games on stock :(' };
+  }
+  return { isAvailable: true, pricePerDay: gameOnDatabase[0].pricePerDay };
+}
+
+export default async function validadeRentalData(req, res, next) {
+  const rentalData = req.body;
+  const { customerId, gameId } = rentalData;
+
+  const rentalDataSchema = joi.object({
+    customerId: joi.number().min(1).required(),
+    gameId: joi.number().min(1).required(),
+    daysRented: joi.number().min(1).required(),
+  });
+
+  const { error } = rentalDataSchema.validate(rentalData, { abortEarly: false });
+
+  if (error) {
+    console.log(chalk.bold.red(error));
+    return res.sendStatus(400);
+  }
+
+  const customerExists = await checkIfCustomerExists(customerId);
+  if (!customerExists) {
+    console.log(chalk.bold.red('Customer not found on Databse :('));
+    return res.sendStatus(400);
+  }
+
+  const isGameAvailable = await checkIfGameIsValid(gameId);
+  const { isAvailable, reason, pricePerDay } = isGameAvailable;
+  if (!isAvailable) {
+    console.log(chalk.bold.red(reason));
+    return res.sendStatus(400);
+  }
+
+  res.locals.user = { ...rentalData, pricePerDay };
+  next();
+}
