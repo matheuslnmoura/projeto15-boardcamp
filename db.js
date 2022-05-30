@@ -9,9 +9,9 @@ const connection = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
 
-if (process.env.MODE === 'PROD') {
+if (process.env.MODE === "PROD") {
   connection.ssl = {
-    rejectUnauthorized: false,
+    rejectUnauthorized: false:
   };
 }
 
