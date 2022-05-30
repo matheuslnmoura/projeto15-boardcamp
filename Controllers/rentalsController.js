@@ -27,7 +27,7 @@ function calculateDays(rentDate, returnDate) {
 
   const difference = day2.getTime() - day1.getTime();
 
-  const daysRented = difference / (1000 * 3600 * 24);
+  const daysRented = Math.round(difference / (1000 * 3600 * 24));
 
   if (returnDate) {
     return daysRented;
@@ -93,26 +93,59 @@ export async function getRentals(req, res) {
 }
 
 export async function postRental(req, res) {
-  const rentalData = res.locals.user;
-  const {
-    customerId, gameId, daysRented, pricePerDay,
-  } = rentalData;
-  const todayDate = new Date();
-  // todayDate = todayDate.toString();
-  console.log(todayDate);
-  await connection.query(`
-    INSERT INTO rentals
-    (
-      id,
-      "customerId",
-      "gameId",
-      "rentDate",
-      "daysRented",
-      "returnDate",
-      "originalPrice",
-      "delayFee"
-    )
-    VALUES (DEFAULT, $1, $2, $3, $4, $5, $6, $7)
-  `, [customerId, gameId, todayDate, daysRented, null, daysRented * pricePerDay, null]);
-  res.sendStatus(201);
+  try {
+    const rentalData = res.locals.user;
+    const {
+      customerId, gameId, daysRented, pricePerDay,
+    } = rentalData;
+    const todayDate = new Date();
+    await connection.query(`
+      INSERT INTO rentals
+      (
+        id,
+        "customerId",
+        "gameId",
+        "rentDate",
+        "daysRented",
+        "returnDate",
+        "originalPrice",
+        "delayFee"
+      )
+      VALUES (DEFAULT, $1, $2, $3, $4, $5, $6, $7)
+    `, [customerId, gameId, todayDate, daysRented, null, daysRented * pricePerDay, null]);
+    return res.sendStatus(201);
+  } catch (e) {
+    console.log(chalk.bold.red(e));
+    return res.sendStatus(500);
+  }
+}
+
+export async function closeRental(req, res) { // FIX ME
+  try {
+    const rentalData = res.locals.user;
+    const {
+      id, rentDate, daysRented, pricePerDay,
+    } = rentalData[0];
+
+    const todayDate = new Date('2021-06-30');
+
+    const actualDaysRented = calculateDays(rentDate, todayDate);
+    let delayFee = null;
+    const daysOverdue = actualDaysRented - daysRented;
+    if (daysOverdue > 0) {
+      delayFee = pricePerDay * daysOverdue;
+    }
+
+    await connection.query(`
+      UPDATE rentals
+      SET "returnDate" = $1, 
+          "delayFee" = $2
+      WHERE id = $3
+
+    `, [todayDate, delayFee, id]);
+    return res.status(201).send(rentalData);
+  } catch (e) {
+    console.log(chalk.bold.red(e));
+    return res.sendStatus(500);
+  }
 }

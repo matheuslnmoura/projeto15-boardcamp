@@ -1,3 +1,4 @@
+/* eslint-disable import/prefer-default-export */
 /* eslint-disable consistent-return */
 /* eslint-disable import/extensions */
 /* eslint-disable no-console */
@@ -35,36 +36,70 @@ async function checkIfGameIsValid(gameId) {
   return { isAvailable: true, pricePerDay: gameOnDatabase[0].pricePerDay };
 }
 
-export default async function validadeRentalData(req, res, next) {
-  const rentalData = req.body;
-  const { customerId, gameId } = rentalData;
+export async function validadeRentalData(req, res, next) {
+  try {
+    const rentalData = req.body;
+    const { customerId, gameId } = rentalData;
 
-  const rentalDataSchema = joi.object({
-    customerId: joi.number().min(1).required(),
-    gameId: joi.number().min(1).required(),
-    daysRented: joi.number().min(1).required(),
-  });
+    const rentalDataSchema = joi.object({
+      customerId: joi.number().min(1).required(),
+      gameId: joi.number().min(1).required(),
+      daysRented: joi.number().min(1).required(),
+    });
 
-  const { error } = rentalDataSchema.validate(rentalData, { abortEarly: false });
+    const { error } = rentalDataSchema.validate(rentalData, { abortEarly: false });
 
-  if (error) {
-    console.log(chalk.bold.red(error));
-    return res.sendStatus(400);
+    if (error) {
+      console.log(chalk.bold.red(error));
+      return res.sendStatus(400);
+    }
+
+    const customerExists = await checkIfCustomerExists(customerId);
+    if (!customerExists) {
+      console.log(chalk.bold.red('Customer not found on Databse :('));
+      return res.sendStatus(400);
+    }
+
+    const isGameAvailable = await checkIfGameIsValid(gameId);
+    const { isAvailable, reason, pricePerDay } = isGameAvailable;
+    if (!isAvailable) {
+      console.log(chalk.bold.red(reason));
+      return res.sendStatus(400);
+    }
+
+    res.locals.user = { ...rentalData, pricePerDay };
+    next();
+  } catch (e) {
+    console.log(chalk.bold.red(e));
+    return res.sendStatus(500);
   }
+}
 
-  const customerExists = await checkIfCustomerExists(customerId);
-  if (!customerExists) {
-    console.log(chalk.bold.red('Customer not found on Databse :('));
-    return res.sendStatus(400);
+export async function validadeCloseRentalId(req, res, next) {
+  try {
+    const rentalId = req.params.id;
+    const rentalOnDatabase = (await connection.query(`
+      SELECT rentals.*, games."pricePerDay"
+      FROM rentals
+      JOIN games ON games.id = rentals."gameId"
+      WHERE rentals.id = ($1)
+
+    `, [rentalId])).rows;
+
+    if (rentalOnDatabase.length === 0) {
+      console.log(chalk.bold.red('Rental not found :('));
+      return res.sendStatus(404);
+    }
+    console.log(rentalOnDatabase);
+    if (rentalOnDatabase[0].returnDate) {
+      console.log(chalk.bold.red('Game already returned!'));
+      return res.sendStatus(400);
+    }
+
+    res.locals.user = rentalOnDatabase;
+    next();
+  } catch (e) {
+    console.log(chalk.bold.red(e));
+    return res.sendStatus(500);
   }
-
-  const isGameAvailable = await checkIfGameIsValid(gameId);
-  const { isAvailable, reason, pricePerDay } = isGameAvailable;
-  if (!isAvailable) {
-    console.log(chalk.bold.red(reason));
-    return res.sendStatus(400);
-  }
-
-  res.locals.user = { ...rentalData, pricePerDay };
-  next();
 }
