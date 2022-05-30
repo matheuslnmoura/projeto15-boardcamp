@@ -1,3 +1,5 @@
+/* eslint-disable quotes */
+/* eslint-disable comma-dangle */
 import pg from 'pg';
 import dotenv from 'dotenv';
 
@@ -11,7 +13,7 @@ const connection = new Pool({
 
 if (process.env.MODE === "PROD") {
   connection.ssl = {
-    rejectUnauthorized: false:
+    rejectUnauthorized: false
   };
 }
 
